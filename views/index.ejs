@@ -8,5 +8,23 @@
     </head>
     <body>
 
+        <script>
+
+            var x_series = [1,2,3];
+            var y_series = [1.3, 1.6, 3.1];
+
+            var linegraph = d3graphs.line("graph1", "GraphingTest")
+                    .width(500)
+                    .height(500);
+
+            var linedata = linegraph.data
+                    .x(x_series)
+                    .y(y_series);
+
+            linegraph.update();
+
+
+        </script>
+
     </body>
 </html>
