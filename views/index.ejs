@@ -11,9 +11,9 @@
         <script>
 
             var x_series = [1,2,3];
-            var y_series = [1.3, 1.6, 3.1];
+            var y_series = [3.0, 1.6, 3.1];
 
-            var linegraph = d3graphs.line("graph1", "GraphingTest")
+            var linegraph = d3graphs.line("graph1", "Graphing Test")
                     .width(500)
                     .height(500);
 
@@ -27,7 +27,19 @@
                     .x([4])
                     .y([4.2]);
 
-            setTimeout(linegraph.update, 1000);
+            var counter = 5;
+            setInterval(function() {
+
+                var newX = counter++;
+                var newY = Math.random() * 1000.0;
+
+                linedata.append
+                        .x(newX)
+                        .y(newY);
+
+                linegraph.update();
+
+            }, 1000);
 
         </script>
 

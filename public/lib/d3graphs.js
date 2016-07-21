@@ -17,6 +17,8 @@ d3graphs = {
         var _yGroup = _svg.append('g')
             .attr('class', 'axis--y');
 
+        _lineGroup.append('path');
+
         var _xScale = d3.scaleLinear();
         var _yScale = d3.scaleLinear();
 
@@ -70,9 +72,16 @@ d3graphs = {
             _lineGroup
                 .attr('transform', 'translate(' + _margin.left + ',' + _margin.top + ')');
             _xGroup
-                .attr('transform', 'translate(0,' + y0 +  _height + ')');
+                .attr('transform', 'translate(' +_margin.left + ',' + (y0 + _height + _margin.top) + ')');
             _yGroup
-                .attr('transform', 'translate(' + x0 + ',0)');
+                .attr('transform', 'translate(' + x0 + _margin.left + ', ' + _margin.top + ')');
+        };
+
+        var _includeOrigin = false;
+
+        this.includeOrigin = function(val) {
+            _includeOrigin = val;
+            return this;
         };
 
         this.width = function(width) {
@@ -145,34 +154,38 @@ d3graphs = {
                 .call(d3.axisLeft(_yScale));
         };
 
+        //Adds 0 to a range [2, 4] becomes [0, 4] [-1, -0.3] becomes [-1, 0]
+        var adjustBounds = function(bounds) {
+            if (bounds[0] > 0)
+                bounds[0] = 0;
+            else if (bounds[1] < 0)
+                bounds[1] = 0;
+            return bounds;
+        };
+
         this.update = function() {
 
+            var xExtent = d3.extent(_x_series);
+            var yExtent = d3.extent(_y_series);
+
+            //Adjust the bounds to include 0 in the scale domains
+            if (_includeOrigin) {
+                xExtent = adjustBounds(xExtent);
+                yExtent = adjustBounds(yExtent);
+            }
+
             _xScale
-                .domain(d3.extent(_x_series))
+                .domain(xExtent)
                 .range([0, _width]);
 
             _yScale
-                .domain(d3.extent(_y_series))
+                .domain(yExtent)
                 .range([_height, 0]);
 
-            var selection = null;
-            if (!_rendered) {
-                selection = _svg.selectAll('path')
-                    .data([
-                        _zippedData
-                    ])
-                    .enter()
-                    .append("path");
-                _rendered = true;
-            } else {
-                selection = _svg.selectAll('path')
-                    .data([
-                        _zippedData
-                    ])
-            }
-
-            //Gets the corresponding collection of paths
-            selection
+            _svg.selectAll('path')
+                .data([
+                    _zippedData
+                ])
                 .attr('d', line)
                 .attr('class', id + '-line')
                 .attr('fill', 'none')
