@@ -6,7 +6,13 @@ a {
     color: #00B7FF;
 }
 
-.graph1-line {
+.title-box {
+    text-anchor: middle;
+    font-size: 25px;
+    vertical-align: middle;
+}
+
+.line {
     fill: none;
     stroke: steelblue;
     stroke-width: 2.5px;
