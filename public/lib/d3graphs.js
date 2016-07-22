@@ -103,7 +103,7 @@ d3graphs = {
             var updateToolTip = function(coords) {
                 var valuesOfSeries = interpolateMouse({ x: coords[0], y: coords[0] });
 
-                var data = [{ series: 'x', value: coords[0] }]
+                var data = [{ series: 'x', value: _xScale.invert(coords[0]) }]
                     .concat(valuesOfSeries);
 
                 _tooltip.selectAll('p')
@@ -257,8 +257,8 @@ d3graphs = {
 
                         var seriesObj = _series[key];
 
-                        var val = seriesObj.interpolate(x);
-                        if (val === undefined)
+                        var value = seriesObj.interpolate(x);
+                        if (value === undefined)
                             continue;
 
                         valuesOfSeries.push({
