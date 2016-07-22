@@ -111,7 +111,7 @@ d3graphs = {
                     .text(function(d) {
                         return d.series + ": " + d.value.toPrecision(3);
                     })
-                    .style('visibility', 'visible')
+                    .style('visibility', 'inherit')
                     .exit()
                     .style('visibility', 'hidden')
                     .text('');
@@ -404,6 +404,63 @@ d3graphs = {
                     updateZip();
                     updateBindings(_x_series, _y_series);
                     return this;
+                };
+
+                var _intervals = 1;
+                var _domain = [0, 0];
+                var _func = undefined;
+
+                var generate = function() {
+
+                    _x_series = [_domain[0]];
+
+                    var step = _domain[1] - _domain[0];
+                    step /= _intervals;
+
+                    for (var i = 0; i < _intervals; ++i) {
+                        _x_series.push(_domain[0] + i * step);
+                    }
+
+                    _y_series = _x_series.map(_func);
+
+                    updateZip();
+
+                };
+
+                this.map = {
+                    domain: function(begin, end) {
+
+                        if (begin === undefined)
+                            return _domain;
+
+                        _domain = [begin, end];
+
+                        if (_intervals > 1 && !(_func === undefined)) {
+                            //Generate _x_series
+                            generate();
+                        }
+
+                        return this;
+                    },
+                    intervals: function(n) {
+                        if (n === undefined)
+                            return _intervals;
+
+                        if (_domain != [0,0] && !(_func === undefined))
+                            generate();
+
+                        _intervals = n;
+
+                        return this;
+                    },
+                    f: function(func) {
+                        _func = func;
+
+                        if (!_domain.equals([0,0]) && !(_intervals == 1))
+                            generate();
+
+                        return this;
+                    }
                 };
 
                 this.detail = {
