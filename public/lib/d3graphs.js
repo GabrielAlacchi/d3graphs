@@ -62,7 +62,12 @@ d3graphs = {
 
     line: function(id, title) {
 
-        var lineGraphObject = function(id, title) {
+        function LineGraphObject(id, title) {
+
+            var _prevMouse = [-1, -1];
+            var line = d3.line()
+                .x(function (d) { return _xScale(d.x); })
+                .y(function (d) { return _yScale(d.y); });
 
             var _width = 0, _height = 0;
             var _svg = d3.select('body').append('svg')
@@ -73,12 +78,88 @@ d3graphs = {
                 .attr('class', 'title-box');
             var _titleText = _titleGroup.append('text');
 
+
             var _lineGroup = _svg.append('g')
                 .attr('class', 'graph-body');
             var _xGroup = _svg.append('g')
                 .attr('class', 'axis--x');
             var _yGroup = _svg.append('g')
                 .attr('class', 'axis--y');
+
+            var _tooltip = d3.select("body")
+                .append("div")
+                .attr('class', 'graph-tooltip')
+                .style("position", "absolute")
+                .style("z-index", "10")
+                .style("visibility", "hidden");
+
+            _tooltip.append('p'); //For x coordinate output
+
+            var _tooltip_visible = false;
+            var setTooltipVisibility = function(value) {
+                return _tooltip.style("visibility", value);
+            };
+
+            var updateToolTip = function(coords) {
+                var valuesOfSeries = interpolateMouse({ x: coords[0], y: coords[0] });
+
+                var data = [{ series: 'x', value: coords[0] }]
+                    .concat(valuesOfSeries);
+
+                _tooltip.selectAll('p')
+                    .data(data)
+                    .text(function(d) {
+                        return d.series + ": " + d.value.toPrecision(3);
+                    })
+                    .style('visibility', 'visible')
+                    .exit()
+                    .style('visibility', 'hidden')
+                    .text('');
+
+                for (var i = 0; i < valuesOfSeries.length; ++i) {
+                    var dataSeriesObject = _series[valuesOfSeries[i].series];
+
+                    dataSeriesObject.tooltipGroup
+                        .attr('transform', 'translate(' + (_margin.left + coords[0]) + ',' + (_margin.top + _yScale(valuesOfSeries[i].value)) + ')')
+                        .style('visibility', 'visible');
+
+                    dataSeriesObject.tooltipCircle
+                        .attr('r', _width / 100.0);
+
+                }
+
+                _prevMouse = coords;
+                return _tooltip;
+            };
+
+            _lineGroup
+                .on("mouseover", function(){
+                    _tooltip_visible = true;
+                    return setTooltipVisibility('visible');
+                })
+                .on("mousemove", function() {
+                    var coords = d3.mouse(this);
+                    _tooltip.style("top",
+                        (d3.event.pageY - 10) + "px").style("left", (d3.event.pageX + 10) +"px");
+
+                    return updateToolTip(coords);
+                })
+                .on("mouseout", function(){
+                    _tooltip_visible = false;
+
+                    for (var seriesName in _series) {
+
+                        if (_series.hasOwnProperty(seriesName)) {
+                            var dataSeriesObject = _series[seriesName];
+                            dataSeriesObject.tooltipGroup.style('visibility', 'hidden');
+                        }
+
+                    }
+
+                    return setTooltipVisibility('hidden');
+                })
+                .append('rect')
+                .attr('fill', 'white');
 
             var _xScale = d3.scaleLinear();
             var _yScale = d3.scaleLinear();
@@ -133,7 +214,7 @@ d3graphs = {
                     x0 = 0;
 
                 if (y0 < yRange[0] || y0 > yRange[1])
-                    y0 = 0;
+                    y0 = yRange[1];
 
                 _svg
                     .attr('width', _width + _margin.left + _margin.right)
@@ -143,11 +224,100 @@ d3graphs = {
                     .attr('transform', 'translate(' + (_margin.left + 0.5 * _width) + ',' + 0.8 * _margin.top + ')');
                 _lineGroup
                     .attr('transform', 'translate(' + _margin.left + ',' + _margin.top + ')');
+
+                _lineGroup.select('rect')
+                    .attr('width', _width)
+                    .attr('height', _height);
+
                 _xGroup
-                    .attr('transform', 'translate(' + _margin.left + ',' + (-y0 + _height + _margin.top) + ')');
+                    .attr('transform', 'translate(' + _margin.left + ',' + (y0 + _margin.top) + ')');
                 _yGroup
                     .attr('transform', 'translate(' + (x0 + _margin.left) + ', ' + _margin.top + ')');
 
+
+            };
+
+            var interpolateMouse = function(coords) {
+
+                //Calculate the value for each series by interpolating between the current interval
+
+                var mouse_x = coords.x;
+
+                var valuesOfSeries = [];
+
+                //Get the value of x in the data space
+                var x = _xScale.invert(mouse_x);
+
+                for (var key in _series) {
+                    if (_series.hasOwnProperty(key)) {
+                        //Looping through every series name using hasOwnProperty
+
+                        //Do a binary search operation to find the appropriate interval for this x value in the data space
+                        //Then interpolate using the given x value (y = mx + b)
+
+                        var seriesObj = _series[key];
+                        var x_array = seriesObj.x();
+                        var y_array = seriesObj.y();
+
+                        //It's out the bounds of this series just skip it
+                        if (x < x_array[0] || x > x_array[x_array.length - 1])
+                            continue;
+
+                        //Binary search (similar type of thing)
+                        //Used to find the appropriate interval for interpolation
+                        var index = x_array.length / 2;
+                        var splice = 0;
+                        var iters = 0;
+                        while(true) {
+
+                            ++iters;
+
+                            if (x >= x_array[index]) {
+                                if (x < x_array[index + 1])
+                                    //We've found the appropriate interval
+                                    break;
+
+                                splice = index;
+                                index = index + (x_array.length - index) / 2;
+
+                            } else {
+                                if (x > x_array[index - 1]) {
+                                    //The left interval is appropriate, decrement then break
+                                    --index;
+                                    break;
+                                }
+
+                                index = index - (index - splice) / 2; //Go to the left half of the array
+
+                            }
+
+                            if (Math.floor(index) == 0)
+                                break;
+
+                            index = Math.round(index);
+
+                            if (index == x_array.length) {
+                                --index;
+                                break;
+                            }
+
+                        }
+
+                        // Use the index for the appropriate interval to interpolate the y value
+                        var slope = (y_array[index + 1] - y_array[index]) / (x_array[index + 1] - x_array[index]);
+
+                        var d_x = x - x_array[index];
+                        var value = y_array[index] + slope * d_x;
+
+                        valuesOfSeries.push({
+                            series: key,
+                            value: value
+                        });
+
+                    }
+                }
+
+                return valuesOfSeries;
 
             };
 
@@ -187,9 +357,9 @@ d3graphs = {
 
                 var _bindings = [];
 
-                var updateBindings = function(x, append) {
+                var updateBindings = function(x, y, append) {
                     _bindings.map(function(binding) {
-                        binding.binding(x, append);
+                        binding.binding(x, y, append);
                     })
                 };
 
@@ -223,7 +393,7 @@ d3graphs = {
 
                     _x_series = xSeries;
                     updateZip();
-                    updateBindings(xSeries);
+                    updateBindings(_x_series, _y_series);
                     return this;
                 };
                 this.y = function(ySeries) {
@@ -232,6 +402,7 @@ d3graphs = {
 
                     _y_series = ySeries;
                     updateZip();
+                    updateBindings(_x_series, _y_series);
                     return this;
                 };
 
@@ -262,46 +433,146 @@ d3graphs = {
                     }
 
                     _x_series = seriesObject.x();
-                    _y_series = seriesObject.x().map(func);
+                    _y_series = seriesObject.y().map(func);
 
-                    seriesObject.detail.addBinding(seriesName, function(x, append) {
+                    seriesObject.detail.addBinding(seriesName, function(x, y, append) {
 
                         if (!(x instanceof Array))
                             x = [x];
+                        if (!(y instanceof Array))
+                            y = [y];
 
-                        var y = x.map(func);
+                        //Calculate the y_s using the ys of the other series
+                        var y_s = y.map(func);
 
                         if (append) {
                             _x_series = _x_series.concat(x);
-                            _y_series = _y_series.concat(y);
+                            _y_series = _y_series.concat(y_s);
                         }
                         else {
                             _x_series = x;
-                            _y_series = y;
+                            _y_series = y_s;
                         }
+
+                        updateZip();
 
                     });
 
                     return this;
 
                 };
+
+              /*this.bind = function() {
+
+                    //It is assumed that the x values for all these series are the same
+                    //TODO: implement interpolation algorithm to avoid this assumption
+
+                    var bindingFunc = undefined;
+                    var seriesNames = [];
+
+                    //Get series names as the first leading arguments then the function to call
+                    for (var i = 0; i < arguments.length; ++i) {
+                        var obj = arguments[i];
+                        if (obj instanceof Function) {
+                            bindingFunc = obj;
+                            break;
+                        } else {
+                            seriesNames.push(obj);
+                        }
+                    }
+
+                    var leadingSeries = seriesNames.shift();
+
+                    var y_buffers = {};
+
+                    var dataSeriesObject = _series[leadingSeries];
+
+                    _x_series = dataSeriesObject.x();
+
+                    for (i = 0; i < seriesNames.length; ++i) {
+
+                    }
+
+                    dataSeriesObject.detail.addBinding(seriesName, function(x, y, append) {
+
+                        if (!(x instanceof Array))
+                            x = [x];
+                        if (!(x instanceof Array))
+                            y = [y];
+
+                        if (append)
+                            _x_series = _x_series.concat(x);
+                        else
+                            _x_series = x;
+
+                    });
+
+                }; */
+
                 this.append = {
                     x: function(x) {
+
+                        var lengthBefore = _x_series.length;
                         _x_series = _x_series.concat(x);
+                        var lengthAfter = _x_series.length;
 
                         updateZip();
-                        updateBindings(x, true);
+
+                        //We can send some data to the binding since there's enough y values
+                        if (_y_series.length > lengthBefore) {
+
+                            //Take the minimum of the lengths of the two sub arrays to see how much to send to the bound series
+                            var amount = d3.min(
+                                [lengthAfter - lengthBefore, _y_series.length - lengthBefore]
+                            );
+
+                            //Get the last [amount] elements of the arrays
+                            var x_s = _x_series.slice(-amount);
+                            var y_s = _y_series.slice(-amount);
+
+                            updateBindings(x_s, y_s, true);
+
+                        }
 
                         return this;
                     },
                     y: function(y) {
+                        var lengthBefore = _y_series.length;
                         _y_series = _y_series.concat(y);
+                        var lengthAfter = _y_series.length;
 
                         updateZip();
+
+                        if (_y_series.length > lengthBefore) {
+                            //We can send some data to the binding since there's enough x values
+
+                            //Take the minimum of the lengths of the two sub arrays to see how much to send to the bound series
+                            var amount = d3.min(
+                                [lengthAfter - lengthBefore, _y_series.length - lengthBefore]
+                            );
+
+                            //Get the last [amount] elements of the arrays
+                            var x_s = _x_series.slice(-amount);
+                            var y_s = _y_series.slice(-amount);
+
+                            updateBindings(x_s, y_s, true);
+
+                        }
+
                         return this;
                     }
                 };
-                this.zip = function() { return _zippedData; }
+
+                this.zip = function() { return _zippedData; };
+
+                this.tooltipGroup = _svg.append('g')
+                    .attr('class', 'graph-tooltip-selection');
+
+                this.tooltipCircle = this.tooltipGroup.append('circle')
+                    .attr('fill', 'black');
+
+                if (!(color === undefined))
+                    this.tooltipCircle.attr('fill', color);
 
             }
 
@@ -319,14 +590,14 @@ d3graphs = {
                 }
 
                 var series = new DataSeries(seriesName, color);
+
+                //Add a line to the tooltip
+                _tooltip.append('p');
+
                 _series[seriesName] = series;
                 return series;
 
             };
-
-            var line = d3.line()
-                .x(function (d) { return _xScale(d.x); })
-                .y(function (d) { return _yScale(d.y); });
 
             var updateAxes = function() {
                 _xGroup
@@ -378,15 +649,18 @@ d3graphs = {
 
                 updateAxes();
 
+                if (_tooltip_visible)
+                    updateToolTip(_prevMouse);
+
             };
 
             updateTransforms();
 
             return this;
 
-        };
+        }
 
-        return new lineGraphObject(id, title);
+        return new LineGraphObject(id, title);
 
     }
 

@@ -15,14 +15,15 @@
 
             var linegraph = d3graphs.line("graph1", "Graphing Test")
                     .width(500)
-                    .height(500);
+                    .height(500)
+                    .includeOrigin(true);
 
             linegraph.data("series1", 'red')
                     .x(x_series)
                     .y(y_series);
 
-            linegraph.data("series2", 'blue')
-                    .bind("series1", Math.log);
+            linegraph.data("1/2 series1", 'blue')
+                    .bind("series1", function(x) { return x / 2; });
 
             linegraph.update();
 
@@ -30,7 +31,7 @@
             var interval = setInterval(function() {
 
                 var newX = counter++;
-                var newY = Math.random() * 1000.0;
+                var newY = Math.random() * 10.0;
 
                 linegraph.data("series1")
                         .append
