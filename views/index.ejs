@@ -17,15 +17,14 @@
                     .width(500)
                     .height(500);
 
-            var linedata = linegraph.data
+            linegraph.data("series1", 'red')
                     .x(x_series)
                     .y(y_series);
 
-            linegraph.update();
+            linegraph.data("series2", 'blue')
+                    .bind("series1", Math.log);
 
-            linedata.append
-                    .x([4])
-                    .y([4.2]);
+            linegraph.update();
 
             var counter = 5;
             var interval = setInterval(function() {
@@ -33,35 +32,14 @@
                 var newX = counter++;
                 var newY = Math.random() * 1000.0;
 
-                linedata.append
+                linegraph.data("series1")
+                        .append
                         .x(newX)
                         .y(newY);
 
                 linegraph.update();
 
             }, 1000);
-
-            var graph2 = d3graphs.line('graph2', "y=cos(x)")
-                    .width(500)
-                    .height(500);
-
-            graph2.margin.setAll(50, 30, 30, 30);
-
-            var x_range = [- 2 * Math.PI, 2 * Math.PI];
-            var intervals = 1000.0;
-            var step = (x_range[1] - x_range[0]) / intervals;
-            var x = [];
-            for (var i = 0; i < intervals; ++i) {
-                x.push(x_range[0] + i * step);
-            }
-
-            var y = x.map(Math.cos);
-            graph2.data
-                    .x(x)
-                    .y(y);
-
-            graph2.update();
-
 
         </script>
 

@@ -2,6 +2,37 @@
  * Created by gabriel on 17/07/16.
  */
 
+// Warn if overriding existing method
+if(Array.prototype.equals)
+    console.warn("Overriding existing Array.prototype.equals. Possible causes: New API defines the method, there's a framework conflict or you've got double inclusions in your code.");
+// attach the .equals method to Array's prototype to call it on any array
+Array.prototype.equals = function (array) {
+    // if the other array is a falsy value, return
+    if (!array)
+        return false;
+
+    // compare lengths - can save a lot of time
+    if (this.length != array.length)
+        return false;
+
+    for (var i = 0, l=this.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (this[i] instanceof Array && array[i] instanceof Array) {
+            // recurse into the nested arrays
+            if (!this[i].equals(array[i]))
+                return false;
+        }
+        else if (this[i] != array[i]) {
+            // Warning - two different object instances will never be equal: {x:20} != {x:20}
+            return false;
+        }
+    }
+    return true;
+};
+
+// Hide method from for-in loops
+Object.defineProperty(Array.prototype, "equals", {enumerable: false});
+
 function adjustDomain(bounds) {
     if (bounds[0] > 0)
         bounds[0] = 0;
@@ -13,17 +44,21 @@ function adjustDomain(bounds) {
 function unionBounds(bound1, bound2) {
 
     //Takes the union of domains for different series of a line graph (in order to be used to find a common scale)
+    var combined_list = bound1.concat(bound2);
 
-    bound1 = bound1.sort(d3.ascending);
-    bound2 = bound2.sort(d3.ascending);
+    if (bound1.equals([0, 0]))
+        return bound2;
+    else if (bound2.equals([0, 0]))
+        return bound1;
 
-
+    return [
+        d3.min(combined_list),
+        d3.max(combined_list)
+    ];
 
 }
 
 d3graphs = {
-
-
 
     line: function(id, title) {
 
@@ -44,8 +79,6 @@ d3graphs = {
                 .attr('class', 'axis--x');
             var _yGroup = _svg.append('g')
                 .attr('class', 'axis--y');
-
-            _lineGroup.append('path');
 
             var _xScale = d3.scaleLinear();
             var _yScale = d3.scaleLinear();
@@ -121,6 +154,8 @@ d3graphs = {
             var _includeOrigin = false;
 
             this.includeOrigin = function(val) {
+                if (val === undefined)
+                    return _includeOrigin;
                 _includeOrigin = val;
                 return this;
             };
@@ -143,33 +178,52 @@ d3graphs = {
                 return this;
             };
 
-            var updateZip = function() {
-
-                //Zips the two arrays into a collection of json objects with the format { x: 0.0, y: 1.0 }
-                if (_x_series.length < _y_series) {
-                    _zippedData = _x_series.map(function(e, i) {
-                        return {x: _x_series[i], y: _y_series[i]};
-                    });
-                } else {
-                    _zippedData = _y_series.map(function(e, i) {
-                        return {x: _x_series[i], y: _y_series[i]};
-                    })
-                }
-
-            };
-
             var _series = {};
 
-            function DataSeries(seriesName) {
-
-                _lineGroup.append('path');
+            function DataSeries(seriesName, color) {
 
                 var _x_series = [], _y_series = [];
+                var _zippedData = [];
+
+                var _bindings = [];
+
+                var updateBindings = function(x, append) {
+                    _bindings.map(function(binding) {
+                        binding.binding(x, append);
+                    })
+                };
+
+                var updateZip = function() {
+
+                    //Zips the two arrays into a collection of json objects with the format { x: 0.0, y: 1.0 }
+                    if (_x_series.length < _y_series) {
+                        _zippedData = _x_series.map(function(e, i) {
+                            return {x: _x_series[i], y: _y_series[i]};
+                        });
+                    } else {
+                        _zippedData = _y_series.map(function(e, i) {
+                            return {x: _x_series[i], y: _y_series[i]};
+                        })
+                    }
+
+                };
+
+                var path = _lineGroup.append('path')
+                    .attr('class', 'line')
+                    .attr('fill', 'none')
+                    .attr('stroke', '#000')
+                    .attr('stroke-width', '10');
+                if (!(color === undefined)) {
+                    path.attr('stroke', color);
+                }
+
                 this.x = function(xSeries) {
                     if (xSeries === undefined)
                         return _x_series;
 
                     _x_series = xSeries;
+                    updateZip();
+                    updateBindings(xSeries);
                     return this;
                 };
                 this.y = function(ySeries) {
@@ -177,22 +231,82 @@ d3graphs = {
                         return _y_series;
 
                     _y_series = ySeries;
+                    updateZip();
                     return this;
+                };
+
+                this.detail = {
+                    //Func is a function that takes an array of new x and a boolean indicating whether the data's been appended or is new
+                    addBinding: function(series, func) {
+                        _bindings.push({
+                            seriesName: series,
+                            binding: func
+                        });
+                    },
+                    removeBinding: function(series) {
+                        _bindings.filter(function (binding) {
+                            return binding.seriesName != binding;
+                        });
+                    }
+                };
+
+                //Binds the series to another series by some function (Could for instance take the logarithm of a series this way)
+                //More efficient
+                this.bind = function(series, func) {
+
+                    // We need to populate the x and y series of this given the initial series being referenced
+
+                    var seriesObject = undefined;
+                    if (series in _series) {
+                        seriesObject = _series[series];
+                    }
+
+                    _x_series = seriesObject.x();
+                    _y_series = seriesObject.x().map(func);
+
+                    seriesObject.detail.addBinding(seriesName, function(x, append) {
+
+                        if (!(x instanceof Array))
+                            x = [x];
+
+                        var y = x.map(func);
+
+                        if (append) {
+                            _x_series = _x_series.concat(x);
+                            _y_series = _y_series.concat(y);
+                        }
+                        else {
+                            _x_series = x;
+                            _y_series = y;
+                        }
+
+                    });
+
+                    return this;
+
                 };
                 this.append = {
                     x: function(x) {
-                        _x_series.concat(x);
+                        _x_series = _x_series.concat(x);
+
+                        updateZip();
+                        updateBindings(x, true);
+
                         return this;
                     },
                     y: function(y) {
-                        _y_series.concat(y);
+                        _y_series = _y_series.concat(y);
+
+                        updateZip();
                         return this;
                     }
-                }
+                };
+                this.zip = function() { return _zippedData; }
+
             }
 
             //Gets or returns the data object for the series name
-            this.data = function(seriesName) {
+            this.data = function(seriesName, color) {
 
                 //Can be used as a getter for all the data series currently on the graph
                 if (seriesName === undefined) {
@@ -204,36 +318,10 @@ d3graphs = {
                     return _series[seriesName];
                 }
 
-                var series = new DataSeries(seriesName);
+                var series = new DataSeries(seriesName, color);
                 _series[seriesName] = series;
                 return series;
 
-            };
-
-            this.data = {
-                //Interface for replacing/appending data to the series of the graph
-                x: function(x_series) {
-                    _x_series = x_series;
-                    updateZip();
-                    return this;
-                },
-                y: function(y_series) {
-                    _y_series = y_series;
-                    updateZip();
-                    return this;
-                },
-                append: {
-                    x: function(x) {
-                        _x_series = _x_series.concat(x);
-                        updateZip();
-                        return this;
-                    },
-                    y: function(y) {
-                        _y_series = _y_series.concat(y);
-                        updateZip();
-                        return this;
-                    }
-                }
             };
 
             var line = d3.line()
@@ -247,19 +335,21 @@ d3graphs = {
                     .call(d3.axisLeft(_yScale));
             };
 
-            //Adds 0 to a range [2, 4] becomes [0, 4] [-1, -0.3] becomes [-1, 0]
-
-
             this.update = function() {
                 //Initialize to an empty domain
                 var xExtent = [0, 0];
                 var yExtent = [0, 0];
 
+                var data = [];
                 for (var key in _series) {
-                    var xSeriesExt = d3.extent(_series.x());
-                    var ySeriesExt = d3.extent(_series.y());
+                    var series = _series[key];
+                    var xSeriesExt = d3.extent(series.x());
+                    var ySeriesExt = d3.extent(series.y());
 
+                    xExtent = unionBounds(xExtent, xSeriesExt);
+                    yExtent = unionBounds(yExtent, ySeriesExt);
 
+                    data.push(series.zip());
 
                 }
 
@@ -280,14 +370,8 @@ d3graphs = {
                 updateTransforms();
 
                 _svg.selectAll('path')
-                    .data([
-                        _zippedData
-                    ])
-                    .attr('d', line)
-                    .attr('class', 'line')
-                    .attr('fill', 'none')
-                    .attr('stroke', '#000')
-                    .attr('stroke-width', '10');
+                    .data(data)
+                    .attr('d', line);
 
                 _titleText
                     .text(title);
