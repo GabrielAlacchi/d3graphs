@@ -256,58 +256,10 @@ d3graphs = {
                         //Then interpolate using the given x value (y = mx + b)
 
                         var seriesObj = _series[key];
-                        var x_array = seriesObj.x();
-                        var y_array = seriesObj.y();
 
-                        //It's out the bounds of this series just skip it
-                        if (x < x_array[0] || x > x_array[x_array.length - 1])
+                        var val = seriesObj.interpolate(x);
+                        if (val === undefined)
                             continue;
-
-                        //Binary search (similar type of thing)
-                        //Used to find the appropriate interval for interpolation
-                        var index = x_array.length / 2;
-                        var splice = 0;
-                        var iters = 0;
-                        while(true) {
-
-                            ++iters;
-
-                            if (x >= x_array[index]) {
-                                if (x < x_array[index + 1])
-                                    //We've found the appropriate interval
-                                    break;
-
-                                splice = index;
-                                index = index + (x_array.length - index) / 2;
-
-                            } else {
-                                if (x > x_array[index - 1]) {
-                                    //The left interval is appropriate, decrement then break
-                                    --index;
-                                    break;
-                                }
-
-                                index = index - (index - splice) / 2; //Go to the left half of the array
-
-                            }
-
-                            if (Math.floor(index) == 0)
-                                break;
-
-                            index = Math.round(index);
-
-                            if (index == x_array.length) {
-                                --index;
-                                break;
-                            }
-
-                        }
-
-                        // Use the index for the appropriate interval to interpolate the y value
-                        var slope = (y_array[index + 1] - y_array[index]) / (x_array[index + 1] - x_array[index]);
-
-                        var d_x = x - x_array[index];
-                        var value = y_array[index] + slope * d_x;
 
                         valuesOfSeries.push({
                             series: key,
@@ -424,6 +376,60 @@ d3graphs = {
                     _y_series = _x_series.map(_func);
 
                     updateZip();
+
+                };
+
+                this.interpolate = function(x) {
+                    //It's out the bounds of this series just skip it
+                    if (x < _x_series[0] || x > _x_series[_x_series.length - 1])
+                        return undefined;
+
+                    //Binary search (similar type of thing)
+                    //Used to find the appropriate interval for interpolation
+                    var index = _x_series.length / 2;
+                    var splice = 0;
+                    var iters = 0;
+                    while(true) {
+
+                        ++iters;
+
+                        if (x >= _x_series[index]) {
+                            if (x < _x_series[index + 1])
+                            //We've found the appropriate interval
+                                break;
+
+                            splice = index;
+                            index = index + (_x_series.length - index) / 2;
+
+                        } else {
+                            if (x > _x_series[index - 1]) {
+                                //The left interval is appropriate, decrement then break
+                                --index;
+                                break;
+                            }
+
+                            index = index - (index - splice) / 2; //Go to the left half of the array
+
+                        }
+
+                        if (Math.floor(index) == 0)
+                            break;
+
+                        index = Math.round(index);
+
+                        if (index == _x_series.length) {
+                            --index;
+                            break;
+                        }
+
+                    }
+
+                    // Use the index for the appropriate interval to interpolate the y value
+                    var slope = (_y_series[index + 1] - _y_series[index]) / (_x_series[index + 1] - _x_series[index]);
+
+                    var d_x = x - _x_series[index];
+
+                    return _y_series[index] + slope * d_x;
 
                 };
 
