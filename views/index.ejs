@@ -28,19 +28,25 @@
             linegraph.update();
 
             var counter = 5;
-            var interval = setInterval(function() {
 
-                var newX = counter++;
-                var newY = Math.random() * 10.0;
+            var interval;
+            function startUpdating() {
 
-                linegraph.data("series1")
-                        .append
-                        .x(newX)
-                        .y(newY);
+                interval = setInterval(function () {
 
-                linegraph.update();
+                    var newX = counter++;
+                    var newY = Math.random() * 10.0;
 
-            }, 1000);
+                    linegraph.data("series1")
+                            .append
+                            .x(newX)
+                            .y(newY);
+
+                    linegraph.update();
+
+                }, 1000);
+
+            }
 
             var graph = d3graphs.line('triggraph', 'TRIGONOMETRY BRO')
                     .width(500)
@@ -65,9 +71,12 @@
                 clearInterval(interval);
             }
 
+            startUpdating();
+
         </script>
 
-        <button onclick="stopInterval()" style="display: block;">Stop updating</button>
+        <button onclick="stopInterval()" style="display: block;">Stop Updating</button>
+        <button onclick="startUpdating()" style="display: block;">Start Updating</button>
 
     </body>
 </html>
