@@ -78,9 +78,9 @@ d3graphs = {
                 .attr('class', 'title-box');
             var _titleText = _titleGroup.append('text');
 
-
             var _lineGroup = _svg.append('g')
-                .attr('class', 'graph-body');
+                .attr('class', 'graph-body')
+                .style('z-index', '0');
             var _xGroup = _svg.append('g')
                 .attr('class', 'axis--x');
             var _yGroup = _svg.append('g')
@@ -93,6 +93,23 @@ d3graphs = {
                 .style("z-index", "10")
                 .style("visibility", "hidden");
 
+            var _xLabel = _xGroup.append('text')
+                .style('text-anchor', 'end')
+                .attr('class', 'x-label')
+                .attr('fill', '#000')
+                .attr('x', '90%')
+                .attr('dy', '-.71em')
+                .text('');
+
+            var _yLabel = _yGroup.append('text')
+                .attr('transform', 'rotate(-90)')
+                .style('text-anchor', 'end')
+                .attr('class', 'y-label')
+                .attr('fill', '#000')
+                .attr('y', 6)
+                .attr('dy', '.71em')
+                .text('');
+
             _tooltip.append('p'); //For x coordinate output
 
             var _tooltip_visible = false;
@@ -101,6 +118,7 @@ d3graphs = {
             };
 
             var updateToolTip = function(coords) {
+
                 var valuesOfSeries = interpolateMouse({ x: coords[0], y: coords[0] });
 
                 var data = [{ series: 'x', value: _xScale.invert(coords[0]) }]
@@ -119,9 +137,18 @@ d3graphs = {
                 for (var i = 0; i < valuesOfSeries.length; ++i) {
                     var dataSeriesObject = _series[valuesOfSeries[i].series];
 
+                    var dx, dy;
+                    dx = _margin.left + coords[0];
+                    dy = _margin.top + _yScale(valuesOfSeries[i].value);
+
+                    if (isNaN(dy)) {
+                        continue;
+                    }
+
                     dataSeriesObject.tooltipGroup
-                        .attr('transform', 'translate(' + (_margin.left + coords[0]) + ',' + (_margin.top + _yScale(valuesOfSeries[i].value)) + ')')
+                        .attr('transform', 'translate(' + dx + ',' + dy + ')')
                         .style('visibility', 'visible');
+
 
                     dataSeriesObject.tooltipCircle
                         .attr('r', _width / 100.0);
@@ -163,6 +190,9 @@ d3graphs = {
 
             var _xScale = d3.scaleLinear();
             var _yScale = d3.scaleLinear();
+
+            var _xAxis = d3.axisBottom()
+            var _yAxis = d3.axisLeft();
 
             var _rendered = false;
             var _zippedData = [];
@@ -223,7 +253,8 @@ d3graphs = {
                 _titleGroup
                     .attr('transform', 'translate(' + (_margin.left + 0.5 * _width) + ',' + 0.8 * _margin.top + ')');
                 _lineGroup
-                    .attr('transform', 'translate(' + _margin.left + ',' + _margin.top + ')');
+                    .attr('transform', 'translate(' + _margin.left + ',' + _margin.top + ')')
+                    .style('z-index', '0');
 
                 _lineGroup.select('rect')
                     .attr('width', _width)
@@ -663,10 +694,16 @@ d3graphs = {
             };
 
             var updateAxes = function() {
+
+                _xAxis
+                    .scale(_xScale);
+                _yAxis
+                    .scale(_yScale);
+
                 _xGroup
-                    .call(d3.axisBottom(_xScale));
+                    .call(_xAxis);
                 _yGroup
-                    .call(d3.axisLeft(_yScale));
+                    .call(_yAxis);
             };
 
             this.update = function() {
@@ -703,7 +740,7 @@ d3graphs = {
 
                 updateTransforms();
 
-                _svg.selectAll('path')
+                _lineGroup.selectAll('path')
                     .data(data)
                     .attr('d', line);
 
@@ -715,6 +752,41 @@ d3graphs = {
                 if (_tooltip_visible)
                     updateToolTip(_prevMouse);
 
+            };
+
+            this.axis = {
+                x: {
+                    label: function(text) {
+                        if (text === undefined)
+                            return _xLabel.text();
+
+                        _xLabel.text(text);
+                        return this;
+                    },
+                    ticks: function(ticks) {
+                        if (ticks === undefined)
+                            return _xAxis.ticks();
+
+                        _xAxis.ticks(ticks);
+                        return this;
+                    }
+                },
+                y: {
+                    label: function(text) {
+                        if (text === undefined)
+                            return _yLabel.text();
+
+                        _yLabel.text(text);
+                        return this;
+                    },
+                    ticks: function(ticks) {
+                        if (ticks === undefined)
+                            return _yAxis.ticks();
+
+                        _yAxis.ticks(ticks);
+                        return this;
+                    }
+                }
             };
 
             updateTransforms();
