@@ -314,6 +314,23 @@ d3graphs = {
             };
 
             this.width = function(width) {
+
+                if (width === undefined)
+                    return _width;
+
+                //Assume we're dealing with percentages
+                if (typeof width == 'string' || width instanceof String) {
+
+                    width = width.trim();
+                    if (width[width.length - 1] == '%') {
+                        var percentage = parseFloat(width);
+                        var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                        width = percentage * w / 100.0;
+                    } else {
+                        width = parseFloat(width);
+                    }
+                }
+
                 _svg.attr('width', width);
                 _width = width;
                 _lineGroup
@@ -323,6 +340,23 @@ d3graphs = {
             };
 
             this.height = function(height) {
+
+                if (height === undefined)
+                    return _height;
+
+                //Assume we're dealing with percentages
+                if (typeof height == 'string' || height instanceof String) {
+
+                    height = height.trim();
+                    if (height[height.length - 1] == '%') {
+                        var percentage = parseFloat(height);
+                        var w = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                        height = percentage * w / 100.0;
+                    } else {
+                        height = parseFloat(height);
+                    }
+                }
+                
                 _svg.attr('height', height);
                 _height = height;
                 _lineGroup
