@@ -2,7 +2,8 @@
 
 Graphing library built using d3 v4
 
-The actual library code is in public/lib/d3graphs.js
+The actual library code is in src/
+d3graphs.css provides basic style for the classes used by the library. You can customize the style generally or individually by using the id for a given graph. 
 
 The example page is written in views/index.ejs
 
