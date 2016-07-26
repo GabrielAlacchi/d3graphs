@@ -12,5 +12,6 @@ The example page is written in views/index.ejs
 
 All dependencies are open source
 
-d3.js Version 4.*.*. Copyright 2016 Mike Bostock.
+http://d3js.org
+d3.js Version 4.*.*.
 Can be included at http://d3js.org/d3.v4.min.js or http://d3js.org/d3.v4.js
