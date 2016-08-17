@@ -1,22 +1,30 @@
 
 var gulp = require('gulp'),
-    uglify = require('gulp-uglify'),
-    rename = require('gulp-rename'),
-    concat = require('gulp-concat'),
-    del = require('del');
+    webpack = require('webpack-stream');
 
-gulp.task('minify', function() {
-    gulp.src('public/lib/*.js')
-        .pipe(concat('d3graphs.concat.js'))
-        .pipe(gulp.dest('dist'))
-        .pipe(rename('d3graphs.min.js'))
-        .pipe(uglify())
-        .pipe(gulp.dest('dist'));
+function onError(err) {
+  console.error(err);
+  
+  //End the stream
+  this.emit('end');
+}
+
+gulp.task('bundle-min', function() {
+  return gulp.src('./lib/**/*.js')
+    .pipe(webpack( require('./webpack.config')(true) ))
+    .on('error', onError)
+    .pipe(gulp.dest('dist'));
 });
 
-gulp.task('route-src', function() {
-   gulp.src('public/lib/*.js')
-       .pipe(gulp.dest('dist'));
+gulp.task('bundle', function() {
+  return gulp.src('./lib/**/*.js')
+    .pipe(webpack( require('./webpack.config')(false) ))
+    .on('error', onError)
+    .pipe(gulp.dest('dist'));
 });
 
-gulp.task('default', ['route-src', 'minify']);
+gulp.task('watch', function() {
+  gulp.watch('./lib/**/*.js', ['bundle', 'bundle-min']);
+});
+
+gulp.task('default', ['bundle', 'bundle-min']);
