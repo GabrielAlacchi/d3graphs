@@ -23,8 +23,14 @@ gulp.task('bundle', function() {
     .pipe(gulp.dest('dist'));
 });
 
-gulp.task('watch', function() {
-  gulp.watch('./lib/**/*.js', ['bundle', 'bundle-min']);
+gulp.task('styles', function() {
+  return gulp.src('./css/**/*.css')
+    .pipe(gulp.dest('dist/css'));
 });
 
-gulp.task('default', ['bundle', 'bundle-min']);
+gulp.task('watch', function() {
+  gulp.watch('./lib/**/*.js', ['bundle', 'bundle-min']);
+  gulp.watch('./css/**/*.js', ['styles']);
+});
+
+gulp.task('default', ['bundle', 'bundle-min', 'styles', 'watch']);
