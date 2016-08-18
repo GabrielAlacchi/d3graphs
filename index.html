@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>D3 Graphs Example</title>
+    <link rel='stylesheet' href='/css/d3graphs.css' />
+    <script src="/dist/d3graphs.js"></script>
+    <style type="text/css">
+        body {
+            font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+        }
+
+        a {
+            color: #00B7FF;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+    var x_series = [1,2,3];
+    var y_series = [3.0, 1.6, 3.1];
+    var linegraph = d3graphs.line("graph1", "Graphing Test")
+            .width('40%')
+            .height('40%')
+            .includeOrigin(true);
+    linegraph.data("series1", 'steelBlue')
+            .x(x_series)
+            .y(y_series);
+    linegraph.data("1/2 series1", 'red')
+            .bind("series1", function(x) { return x / 2; });
+    linegraph.update();
+    linegraph.axis.x
+            .label('x-axis')
+            .ticks(15);
+    linegraph.axis.y
+            .label('y-axis')
+            .ticks(30);
+    var counter = 5;
+    var interval;
+    function startUpdating() {
+        interval = setInterval(function () {
+            var newX = counter++;
+            var newY = Math.random() * 10.0;
+            linegraph.data("series1")
+                    .append
+                    .x(newX)
+                    .y(newY);
+            linegraph.update();
+        }, 1000);
+    }
+    /* var graph = d3graphs.line('triggraph', 'TRIGONOMETRY BRO')
+            .width(500)
+            .height(500);
+    graph.data('cos(x)', 'steelBlue')
+            .map
+            .domain(-4 * Math.PI, 4 * Math.PI)
+            .intervals(1000)
+            .f(Math.cos);
+    graph.data('cos(3x)', 'red')
+            .map
+            .domain(-4 * Math.PI, 4 * Math.PI)
+            .intervals(1000)
+            .f(function(x) { return Math.cos(3 * x); });
+    graph.update(); */
+    function stopInterval() {
+        clearInterval(interval);
+    }
+    startUpdating();
+</script>
+
+<button onclick="stopInterval()" style="display: block;">Stop Updating</button>
+<button onclick="startUpdating()" style="display: block;">Start Updating</button>
+
+</body>
+</html>
