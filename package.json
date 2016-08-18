@@ -7,6 +7,17 @@
     "start": "node ./bin/www",
     "test": "webpack-dev-server --content-base . --inline --hot"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GabrielAlacchi/d3graphs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GabrielAlacchi/d3graphs/issues"
+  },
+  "author": "Gabriel Alacchi",
+  "license": "MIT",
+  "main": "lib/d3graphs.js",
+  "homepage": "https://github.com/GabrielAlacchi/expressjs-react-boilerplate#readme",
   "dependencies": {
     "babel-core": "^6.13.2",
     "babel-loader": "^6.2.5",
