@@ -1,6 +1,6 @@
 # d3graphs
 
-Graphing library built using d3.js release v4.*.*
+Graphing library built using d3.js release v4
 
 ![alt tag](https://s31.postimg.org/ir2upw9e3/screenshot.png)
 
