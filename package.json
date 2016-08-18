@@ -1,11 +1,10 @@
 {
   "name": "d3graphs",
   "version": "0.1.0",
-  "private": true,
   "scripts": {
     "install": "gulp build",
-    "start": "node ./bin/www",
-    "test": "webpack-dev-server --content-base . --inline --hot"
+    "start": "gulp",
+    "test": "gulp browser-sync watch"
   },
   "repository": {
     "type": "git",
